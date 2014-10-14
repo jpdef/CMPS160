@@ -6,7 +6,6 @@ var thetaLoc;
 var points = [];
 
 var NumTimesToSubdivide = 6;
-var NTS =6;
 window.onload = function init()
 {
     canvas = document.getElementById( "gl-canvas" );
@@ -19,15 +18,16 @@ window.onload = function init()
     //
 
 
-
     // First, initialize the corners of our gasket with three points.
     
     var vertices = [
         vec2( -0.95, -0.95 ),
         vec2(  0,  0.95 ),
-        vec2(  .95, -.95 )
+        vec2(  0.95, -0.95 )
     ];
 
+     divideTriangle( vertices[0], vertices[1], vertices[2],
+                    NumTimesToSubdivide);
 
     //
     //  Configure WebGL
@@ -50,13 +50,15 @@ window.onload = function init()
 
     //slider
     document.getElementById("slider").onchange = function(event) {
-        console.log(event.target.value);
-        NumTimesToSubdivide =  event.target.value;
-     
+        points.splice(0,points.length);
+        divideTriangle( vertices[0], vertices[1], vertices[2],
+                   event.target.value);
+        gl.bindBuffer(gl.ARRAY_BUFFER,bufferId);
+        gl.bufferData(gl.ARRAY_BUFFER,flatten(points),gl.STATIC_DRAW);
+
     };
 
-    divideTriangle( vertices[0], vertices[1], vertices[2],
-                    NumTimesToSubdivide);
+   
 
     // Load the data into the GPU
     
@@ -70,37 +72,38 @@ window.onload = function init()
     gl.vertexAttribPointer( vPosition, 2, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray( vPosition );
 
+    console.log(points);
     render();
 };
 
 
 
 function triangle( a, b, c )
-{
+{   
     points.push( a, b );
     points.push( b, c );
     points.push( c, a );
 
+    
 }
 
 function divideTriangle( a, b, c, count )
 {
 
-        
     // check for end of recursion
     
     if ( count === 0 ) {
         triangle( a, b, c );
-    }
-    else {
+    }else {
     
         //bisect the sides
         
         var ab = mix( a, b, 0.5 );
         var ac = mix( a, c, 0.5 );
         var bc = mix( b, c, 0.5 );
-       
+
        //perturb
+       
        var alpha = .02;
        var sign_num = Math.floor(Math.random()*2) ==1 ? 1 : -1;
         ab[0] += sign_num*alpha*Math.random();
@@ -109,8 +112,7 @@ function divideTriangle( a, b, c, count )
         ac[1] += sign_num*alpha*Math.random();
         bc[0] += sign_num*alpha*Math.random();
         bc[1] += sign_num*alpha*Math.random();
-        
-        --count;
+                --count;
 
         // three new triangles
         
