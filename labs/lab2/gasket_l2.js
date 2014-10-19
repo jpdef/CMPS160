@@ -3,13 +3,31 @@ var canvas;
 var gl;
 var theta = 0.0;
 var thetaLoc;
+var delta = vec2(0.0,0.0);
+var delta_Loc;
+var velocity= vec2(0.0,0.0);
 var points = [];
+var mouseDown =false;
+var lastMouseX = null;
+var lastMouseY = null;
+var time = 0.0;
+var container = [
+        vec2( -0.5, -0.5 ),
+        vec2(  0,  0.5 ),
+        vec2(  0.5, -0.5 )];
 
+var vertices = [
+        vec2( -0.5, -0.5 ),
+        vec2(  0,  0.5 ),
+        vec2(  0.5, -0.5 )
+];
 var NumTimesToSubdivide = 6;
 window.onload = function init()
 {
     canvas = document.getElementById( "gl-canvas" );
-
+    canvas.onmousedown = handleMouseDown;
+    document.onmouseup = handleMouseUp;
+    document.onmousemove = handleMouseMove; 
     gl = WebGLUtils.setupWebGL( canvas );
     if ( !gl ) { alert( "WebGL isn't available" ); }
         
@@ -20,11 +38,6 @@ window.onload = function init()
 
     // First, initialize the corners of our gasket with three points.
     
-    var vertices = [
-        vec2( -0.95, -0.95 ),
-        vec2(  0,  0.95 ),
-        vec2(  0.95, -0.95 )
-    ];
 
      divideTriangle( vertices[0], vertices[1], vertices[2],
                     NumTimesToSubdivide);
@@ -34,18 +47,24 @@ window.onload = function init()
     //
     gl.viewport( 0, 0, canvas.width, canvas.height );
     gl.clearColor( 1.0, 1.0, 1.0, 1.0 );
+    
+
 
     //  Load shaders and initialize attribute buffers
     
     var program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
+       
+
+    thetaLoc = gl.getUniformLocation(program, "theta");
+    delta_Loc = gl.getUniformLocation(program,"delta");
+
 
     //button 
-    thetaLoc = gl.getUniformLocation(program, "theta");
-    
     document.getElementById("Rotate").onclick=
     function(){
-        theta += 0.5; 
+        theta += 0.5;
+        update_container();
     };
 
     //slider
@@ -58,7 +77,62 @@ window.onload = function init()
 
     };
 
-   
+
+    //keyboard
+     window.onkeydown = function(event){
+         switch(event.keyCode){
+             case 39:
+                theta -= 0.5;
+                update_container();
+                break;
+             case 37:
+                theta +=0.5;
+                update_container();
+                break;
+     }
+
+
+     };
+
+     //Mouse
+      function handleMouseDown(event){
+         var mx =-1 + 2*event.clientX/canvas.width;
+         var my =-1 +2*(canvas.height-event.clientY)/canvas.height;
+       if(in_container(mx,my+0.1)){
+         mouseDown = true;
+         console.log("hit");
+         lastMouseX = mx; lastMouseY = my;
+        }
+
+      }
+ 
+      function handleMouseUp(event){
+         mouseDown=false;
+         var mx =-1 + 2*event.clientX/canvas.width;
+         var my =-1 +2*(canvas.height-event.clientY)/canvas.height;
+         velocity[0] = (mx - lastMouseX)/10000.0;
+         velocity[1] = (my - lastMouseY)/10000.0;
+         console.log(Math.abs(lastMouseX-mx),Math.abs(lastMouseY-my));        
+       }
+
+      function handleMouseMove(event){
+        var newX =-1 + 2*event.clientX/canvas.width;
+        var newY =-1 + 2*(canvas.height-event.clientY)/canvas.height;
+        
+        if(!mouseDown){
+           return ;
+         } 
+         
+         delta[0] += newX-lastMouseX;
+         delta[1] += newY-lastMouseY;
+         
+         update_container();
+         lastMouseX = newX;
+         lastMouseY = newY;
+
+
+      }
+
 
     // Load the data into the GPU
     
@@ -72,9 +146,10 @@ window.onload = function init()
     gl.vertexAttribPointer( vPosition, 2, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray( vPosition );
 
-    console.log(points);
+    //console.log(points);
     render();
 };
+
 
 
 
@@ -122,10 +197,83 @@ function divideTriangle( a, b, c, count )
     }
 }
 
+function update_container()
+{
+    var s = Math.sin(theta);
+    var c = Math.cos(theta);
+    for(i=0;i<3;++i){
+
+      if( Math.abs(container[i][0]) > 1){
+          console.log("went outside boundary");
+          console.log("x = " + container[i][0]);
+          velocity[0]  = container[i][0] >1 ? -0.00001 : .00001;
+      } 
+      if(  Math.abs(container[i][1]) > 1){
+          console.log("went outside boundary");
+          console.log("y = " + container[i][1]);
+          velocity[1]  = container[i][1] >1 ? -0.00001 : .00001;
+      }
+    }
+     
+    
+    for(i=0;i<3;++i){
+
+       container[i][0]= -s*vertices[i][1] + c*vertices[i][0] +delta[0];
+       container[i][1]= s*vertices[i][0] + c*vertices[i][1] +delta[1];
+    }
+   //console.log(container[0][0] + " , " + container[0][1]);
+
+}
+
+function in_container(mx,my)
+{
+  var highest_x = container[0][0];
+  var highest_y = container[0][1];
+  var lowest_x  = container[0][0];
+  var lowest_y  = container[0][1];
+  
+  for(i =1; i< 3 ; ++i){
+      if(container[i][0] > highest_x){
+        highest_x = container[i][0]
+      }
+      if(container[i][0] < lowest_x){
+        lowest_x = container[i][0]
+      }
+
+  }
+
+
+  for(i =1; i< 3 ; ++i){
+      if(container[i][0] > highest_y){
+        highest_y = container[i][0]
+      }
+      if(container[i][0] < lowest_y){
+        lowest_y = container[i][0]
+      }
+
+  }
+  
+ // console.log("Lowest = " + lowest_x + " , " + lowest_y );
+  //console.log("Highest = " + highest_x + " , " + highest_y );
+  //console.log("x,y = " + mx + " , " + my);  
+  if( mx > lowest_x && mx < highest_x && my > lowest_y && my < highest_y){
+      return true
+  }
+     return false;
+
+}
+
+
 function render()
 {
+    //update vertices
+    time++;
+    delta[0] += time*velocity[0];
+    delta[1] += time*velocity[1];
+    update_container();
     gl.clear( gl.COLOR_BUFFER_BIT );
     gl.uniform1f(thetaLoc,theta);
+    gl.uniform2fv(delta_Loc,delta);
     gl.drawArrays( gl.LINES, 0, points.length );
     requestAnimFrame(render);
 }
