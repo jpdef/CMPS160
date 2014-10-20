@@ -11,9 +11,14 @@ var mouseDown =false;
 var lastMouseX = null;
 var lastMouseY = null;
 var time = 0.0;
+var paint_buffer;
+var paint_mode=false;
+var vPosition;
+var gasket_buffer
+var painter = [];
 var container = [
         vec2( -0.5, -0.5 ),
-        vec2(  0,  0.5 ),
+        vec2(  0,  0.2 ),
         vec2(  0.5, -0.5 )];
 
 var vertices = [
@@ -41,7 +46,7 @@ window.onload = function init()
 
      divideTriangle( vertices[0], vertices[1], vertices[2],
                     NumTimesToSubdivide);
-
+ 
     //
     //  Configure WebGL
     //
@@ -59,20 +64,37 @@ window.onload = function init()
     thetaLoc = gl.getUniformLocation(program, "theta");
     delta_Loc = gl.getUniformLocation(program,"delta");
 
+     vPosition = gl.getAttribLocation( program, "vPosition" );
 
-    //button 
+    //Buttons
     document.getElementById("Rotate").onclick=
     function(){
         theta += 0.5;
         update_container();
     };
+    
+    document.getElementById("paint_mode").onclick=
+     function(){
+        paint_mode= true;
+    };
 
-    //slider
+    document.getElementById("stop_paint_mode").onclick=
+     function(){
+        paint_mode= false;
+    };
+
+    document.getElementById("stop_mode").onclick=
+     function(){
+        velocity[0]= 0.0;
+        velocity[1]= 0.0;
+    };
+
+    //Slider
     document.getElementById("slider").onchange = function(event) {
         points.splice(0,points.length);
         divideTriangle( vertices[0], vertices[1], vertices[2],
                    event.target.value);
-        gl.bindBuffer(gl.ARRAY_BUFFER,bufferId);
+        gl.bindBuffer(gl.ARRAY_BUFFER,gasket_buffer);
         gl.bufferData(gl.ARRAY_BUFFER,flatten(points),gl.STATIC_DRAW);
 
     };
@@ -96,26 +118,33 @@ window.onload = function init()
 
      //Mouse
       function handleMouseDown(event){
-         var mx =-1 + 2*event.clientX/canvas.width;
-         var my =-1 +2*(canvas.height-event.clientY)/canvas.height;
-       if(in_container(mx,my+0.1)){
+      var mx =-1 + 2*event.clientX/canvas.width;
+      var my =-1 +2*(canvas.height-event.clientY)/canvas.height;
+      if(!paint_mode){
+       if(in_container(mx,my+0.4)){
          mouseDown = true;
          console.log("hit");
          lastMouseX = mx; lastMouseY = my;
         }
+       }else{
+        draw_triangle(mx+.4,my+.4);
+       }
 
       }
  
       function handleMouseUp(event){
+       if(!paint_mode){
          mouseDown=false;
          var mx =-1 + 2*event.clientX/canvas.width;
          var my =-1 +2*(canvas.height-event.clientY)/canvas.height;
          velocity[0] = (mx - lastMouseX)/10000.0;
          velocity[1] = (my - lastMouseY)/10000.0;
          console.log(Math.abs(lastMouseX-mx),Math.abs(lastMouseY-my));        
+         }
        }
 
       function handleMouseMove(event){
+       if(!paint_mode){
         var newX =-1 + 2*event.clientX/canvas.width;
         var newY =-1 + 2*(canvas.height-event.clientY)/canvas.height;
         
@@ -130,22 +159,22 @@ window.onload = function init()
          lastMouseX = newX;
          lastMouseY = newY;
 
-
+       }
       }
 
 
     // Load the data into the GPU
     
-    var bufferId = gl.createBuffer();
-    gl.bindBuffer( gl.ARRAY_BUFFER, bufferId );
+    gasket_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,gasket_buffer);
     gl.bufferData( gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW );
+   
+    paint_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,paint_buffer);
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(painter), gl.STATIC_DRAW );
 
-    // Associate out shader variables with our data buffer
+
     
-    var vPosition = gl.getAttribLocation( program, "vPosition" );
-    gl.vertexAttribPointer( vPosition, 2, gl.FLOAT, false, 0, 0 );
-    gl.enableVertexAttribArray( vPosition );
-
     //console.log(points);
     render();
 };
@@ -253,16 +282,25 @@ function in_container(mx,my)
 
   }
   
- // console.log("Lowest = " + lowest_x + " , " + lowest_y );
-  //console.log("Highest = " + highest_x + " , " + highest_y );
-  //console.log("x,y = " + mx + " , " + my);  
+  console.log("Lowest = " + lowest_x + " , " + lowest_y );
+  console.log("Highest = " + highest_x + " , " + highest_y );
+  console.log("x,y = " + mx + " , " + my);  
   if( mx > lowest_x && mx < highest_x && my > lowest_y && my < highest_y){
       return true
   }
      return false;
 
 }
+function draw_triangle(mx,my){
+    painter.push(vec2(mx-.1,my-.1));
+    painter.push(vec2(mx,my+.1));
+    painter.push(vec2(mx+.1,my-.1));
+    gl.bindBuffer( gl.ARRAY_BUFFER, paint_buffer );
+    gl.bufferData(gl.ARRAY_BUFFER,flatten(painter),gl.STATIC_DRAW);
 
+    
+
+}
 
 function render()
 {
@@ -273,8 +311,19 @@ function render()
     update_container();
     gl.clear( gl.COLOR_BUFFER_BIT );
     gl.uniform1f(thetaLoc,theta);
-    gl.uniform2fv(delta_Loc,delta);
-    gl.drawArrays( gl.LINES, 0, points.length );
-    requestAnimFrame(render);
+    gl.uniform2fv(delta_Loc,delta); 
+
+    
+    
+    gl.enableVertexAttribArray( vPosition );
+    gl.bindBuffer( gl.ARRAY_BUFFER, gasket_buffer );
+    gl.vertexAttribPointer( vPosition, 2, gl.FLOAT, false, 0, 0 );
+    gl.drawArrays( gl.LINES, 0, points.length);
+    
+    gl.bindBuffer( gl.ARRAY_BUFFER, paint_buffer );
+    gl.vertexAttribPointer( vPosition, 2, gl.FLOAT, false, 0, 0 );
+    gl.drawArrays( gl.TRIANGLES,0, painter.length);
+    
+   requestAnimFrame(render);
 }
 
