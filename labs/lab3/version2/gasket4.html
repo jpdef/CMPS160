@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>3D Sierpinski Gasket</title>
+<div>Use W,S to control Z rotation </div>
+<div>Use A,D to control X rotation</div>
+<div>Use Q,E to control Y rotation</div>
+
+<div>Use J,L to control x translation </div>
+<div>Use I,K to control y translation</div>
+<div>Use U,O to control Z translation</div>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec3 vPosition;
+attribute vec3 vColor;
+attribute vec3 checkerPos;
+attribute vec3 checkerColor;
+
+uniform mat3 rot_max_x_test;
+
+uniform float theta;
+uniform float phi;
+uniform float gamma;
+
+uniform float dx;
+uniform float dy;
+uniform float dz;
+
+varying vec4 color;
+varying mat3 rot_mat_x; 
+varying mat3 rot_mat_y;
+varying mat3 rot_mat_z;
+varying vec3 trans_vec_x; 
+varying vec3 trans_vec_y;
+varying vec3 trans_vec_z;
+varying vec3 tran_vec;
+varying vec3 rot_vec;
+
+void
+main()
+{   
+  
+   rot_mat_x =  mat3( 
+                vec2(1.0,0.0)       , 0.0, 
+                vec2(0.0,cos(theta)), -sin(theta), 
+                vec2(0.0,sin(theta)),  cos(theta)  );
+
+  rot_mat_y =  mat3( 
+               vec2(cos(phi) ,0.0),  -sin(phi),
+               vec2(0.0, 1.0),        0.0,
+               vec2(sin(phi),0.0),    cos(phi) );
+ 
+  rot_mat_z =  mat3( 
+               vec2(cos(gamma), sin(gamma)),  0.0 ,
+               vec2(-sin(gamma),cos(gamma)), 0.0 ,
+               vec2(0.0, 0.0), 1.0);
+
+  trans_vec_x = vec3(dx,0.0,0.0);
+  trans_vec_y = vec3(0.0,dy,0.0);
+  trans_vec_z = vec3(0.0,0.0,dz);
+ 
+  rot_vec = rot_mat_z*rot_mat_y*rot_mat_x*vPosition;
+  rot_vec = trans_vec_x+trans_vec_y+trans_vec_z+rot_vec;
+  gl_Position = vec4(rot_vec, 1.0);
+  color = vec4(vColor, 1.0);
+}
+
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+   
+varying vec4 color;
+
+void
+main()
+{
+    gl_FragColor = color;
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="gasket4.js"></script>
+</head>   
+<input id="slider" type="range" min="1" max = "6" step="1.0" value="1.0"/>
+<div>min="1" max = "5" step = "1" </div>
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
