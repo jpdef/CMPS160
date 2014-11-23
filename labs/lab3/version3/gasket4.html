@@ -125,7 +125,7 @@ main()
   
   global_rot_mat = global_rot_mat_z*global_rot_mat_y*global_rot_mat_x;
 
-  gl_Position = global_rot_mat*projectionMatrix*modelViewMatrix*vec4(rot_vec, 1.0);
+  gl_Position = projectionMatrix*global_rot_mat*modelViewMatrix*vec4(rot_vec, 1.0);
   color = vec4(vColor, 1.0);
 }
 
@@ -156,8 +156,7 @@ main()
 <input id="slider" type="range" min="1" max = "6" step="1.0" value="1.0"/>
 <div>min="1" max = "5" step = "1" </div>
 <body>
-  *Hint if you're in the halloween spirit SHIFT click the right portion of the 
-   canvas for a surprise
+  *Hint if you're in the halloween spirit SHIFT click the canvas
 <canvas id="gl-canvas" width="512" height="512">
 Oops ... your browser doesn't support the HTML5 canvas element
 </canvas>

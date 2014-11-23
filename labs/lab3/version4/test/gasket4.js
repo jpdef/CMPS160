@@ -46,21 +46,16 @@ var NumTimesToSubdivide = 6;
 var pM, mM;
 var pMLoc, mMLoc;
 
+
 var fov = 45;
 var far = 1000;
 var near = .01;
 var aspect;
 
-//fun
-var reg_color = vec3(1.0, 1.0,1.0);
-var spooky_color = vec3(1.0,0.5,0.0);
-var spooky_bool = false;
-
 
 window.onload = function init()
 {
     canvas = document.getElementById( "gl-canvas" );
-    canvas.onmousedown = handleMouseDown;
     aspect = canvas.width/canvas.height;
     
     gl = WebGLUtils.setupWebGL( canvas );
@@ -302,15 +297,12 @@ function make_plane(x,y,z){
 
             }else{
 
-                for(j = 0 ; j< 6 ; ++j ){ CBC.push(reg_color);}
+                for(j = 0 ; j< 4 ; ++j ){ CBC.push(vec3(1.0, 1.0, 1.0));}
             }
-            CB.push(vec3(x,-1.0,z));
+            CB.push(vec3(x,-1.2,z));
             CB.push(vec3(x,-1.0,z+1.0));
-            CB.push(vec3(x+1.0,-1.0,z));
-
-            CB.push(vec3(x,-1.0,z+1.0));
+            CB.push(vec3(x+1.0,-1.2,z));
             CB.push(vec3(x+1.0,-1.0,z+1.0));
-            CB.push(vec3(x+1.0,-1.0,z));
 
             ++i;
         }
@@ -328,7 +320,7 @@ function draw_plane(){
     set_uniform_plane();
     gl.bindBuffer(gl.ARRAY_BUFFER,CBC_buffer);
     gl.vertexAttribPointer( vColor, 3, gl.FLOAT, false, 0, 0 );
-    gl.drawArrays( gl.TRIANGLES, 0, CB.length );
+    gl.drawArrays( gl.TRIANGLE_STRIP, 0, CB.length );
 
 
 }
@@ -372,27 +364,6 @@ function set_uniform_camera(){
 
 }
 
-function handleMouseDown(event){
-    if(Math.abs(event.clientX) < canvas.width && Math.abs(event.clientY) < canvas.height ){
-        if(event.shiftKey && spooky_bool ==false){
-            spooky_bool = true;
-            var cap = CBC.length;
-            CBC.splice(0,cap)
-            for(i =0; i<cap ;i++){
-                CBC.push(spooky_color);
-            }
-            gl.bindBuffer(gl.ARRAY_BUFFER,cBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER,flatten(CBC),gl.STATIC_DRAW);
-
-
-        }
-
-
-       // if(event.shiftKey && spooky_bool == rue){ spooky_bool = false;console.log(false);}
-
-    }
-
-}
 
 function render()
 {
@@ -401,6 +372,13 @@ function render()
     set_uniform_camera();
     draw_plane();
     draw_tetra();
+    
+   
+
+
+
+  
+
     requestAnimFrame(render);
     
 }

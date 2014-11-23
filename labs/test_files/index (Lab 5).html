@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Lab 5</title>
+        <script src="../Common/webgl-utils.js"></script>
+        <script src="../Common/webgl-debug.js"></script>
+        <script src="../Common/cuon-utils.js"></script>
+        <script src="../Common/cuon-matrix.js"></script>
+        <script src="../Common/math.js"></script>
+        <script src="lab5.js"></script>
+    </head>
+    <body onload="main()">
+        <br>
+        <button id="shadeOn">Shading On</button>
+        <button id="shadeOff">Shading Off</button>
+        <br><br>
+        <strong>Instructions:</strong>
+        <br>
+        - Use the buttons above to toggle shading on or off.<br>
+        - Press the 'a' or 'd' key to look left or right respectively.<br>
+        - Press the 'w' or 's' key to move forward or back respectively.<br>
+        - Press the 'u' or 'j' key to move the light forward or back respectively.<br>
+        - Press the 'h' or 'k' key to move the light left or right respectively.<br>
+        - Press the 'o' or 'l' key to move the light up or down respectively.<br>
+        <br>
+        <canvas id="webgl" width="512" height="512">
+            Please use a browser that supports "canvas"
+        </canvas>
+    </body>
+</html>

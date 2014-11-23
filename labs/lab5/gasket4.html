@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<h2>Camera Toggles</h2>
+<div>
+<button id = "Button1">Increase X</button>
+<button id = "Button2">Decrease X</button>
+<button id = "Button3">Increase Y</button>
+<button id = "Button4">Decrease Y</button>
+<button id = "Button5">Increase Z</button>
+<button id = "Button6">Decrease Z</button>
+</div>
+
+<div>
+<button id = "Button7">Camera Rotate +Z</button>
+<button id = "Button8">Camera Rotate -Z</button>
+</div>
+
+<div>
+  <button id = "Button13">Increase FOV</button>
+  <button id = "Button14">Decrease FOV</button>
+  <button id = "Button15">Reset it all</button>
+</div>
+
+<h2>Lighting Toggles</h2>
+
+<div>
+  Keys for moving lights
+   X movement V,C   | Y movement M,N  | Z movement Z,X 
+</div>
+<div> 
+ <button id = "Button16">Bump Map</button>
+  <button id = "Button17">Perin on/off</button>
+  <button id = "Button18">Light on/off</button>
+</div>
+
+
+<h2>Key Controls for Gasket Movement</h2>
+<div>Use W,S to control Z rotation </div>
+<div>Use A,D to control X rotation</div>
+<div>Use Q,E to control Y rotation</div>
+
+<div>Use J,L to control x translation </div>
+<div>Use I,K to control y translation</div>
+<div>Use U,O to control Z translation</div>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec3 vColor;
+attribute vec4 checkerPos;
+attribute vec3 checkerColor;
+attribute vec4 vNormal;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+
+uniform vec4 lightPosition;
+varying vec3 N, L, E;
+
+
+uniform float theta;
+uniform float phi;
+uniform float gamma;
+
+uniform float ax;
+uniform float ay;
+uniform float az;
+
+uniform float lx;
+uniform float ly;
+uniform float lz;
+
+uniform float dx;
+uniform float dy;
+uniform float dz;
+
+varying vec4 color;
+varying mat4 rot_mat_x; 
+varying mat4 rot_mat_y;
+varying mat4 rot_mat_z;
+varying mat4 local_rot_mat;
+
+varying mat4 global_rot_mat_x; 
+varying mat4 global_rot_mat_y;
+varying mat4 global_rot_mat_z;
+varying mat4 global_rot_mat;
+varying vec4 trans;
+
+varying vec4 rot_vec;
+
+void
+main()
+{   
+  
+
+
+   rot_mat_x =  mat4( 
+                vec3(1.0,0.0, 0.0),0.0,
+                vec3(0.0,cos(theta), -sin(theta)),0.0, 
+                vec3(0.0,sin(theta),  cos(theta)),0.0,
+                vec3(0.0,0.0,0.0), 1.0 
+                );
+
+  rot_mat_y =  mat4( 
+               vec3(cos(phi) ,0.0,-sin(phi)),0.0,
+               vec3(0.0, 1.0,0.0), 0.0,
+               vec3(sin(phi),0.0,cos(phi)),0.0,
+               vec3(0.0,0.0,0.0), 1.0 
+               );
+ 
+  rot_mat_z =  mat4( 
+               vec3(cos(gamma), sin(gamma), 0.0), 0.0,
+               vec3(-sin(gamma),cos(gamma), 0.0), 0.0,
+               vec3(0.0, 0.0, 1.0), 0.0,
+               vec3(0.0,0.0,0.0), 1.0 
+               );
+
+
+   global_rot_mat_x =  mat4( 
+                vec4(1.0,0.0, 0.0 , 0.0), 
+                vec4(0.0, cos(ax), -sin(ax), 0.0),
+                vec4(0.0, sin(ax),  cos(ax),0.0),
+                vec4(0.0,0.0,0.0,1.0) );
+
+  global_rot_mat_y =  mat4( 
+               vec3(cos(ay) ,0.0, -sin(ay)), 0.0,
+               vec3(0.0, 1.0,0.0),        0.0,
+               vec3(sin(ay),0.0,cos(ay) ),0.0,
+               vec3(0.0,0.0,0.0), 1.0 );
+ 
+  global_rot_mat_z =  mat4( 
+                vec3( cos(az), sin(az), 0.0),  0.0 ,
+                vec3(-sin(az), cos(az),0.0),  0.0 ,
+                vec3(0.0, 0.0,1.0)          , 0.0  ,
+                vec3(0.0,0.0,0.0)           , 1.0);
+
+/*
+  trans_mat = mat4(
+             vec3(1.0,0.0,0.0),dx,
+             vec3(0.0,1.0,0.0),dy,
+             vec3(0.0,0.0,1.0),dz,
+             vec3(0.0,0.0,0.0),1.0 );
+ */
+
+  trans = vec4(dx,0.0,0.0,0.0) + 
+             vec4(0.0,dy,0.0,0.0) +
+             vec4(0.0,0.0,dz,0.0);
+
+  //rotate and translate model 
+   local_rot_mat = rot_mat_z*rot_mat_y*rot_mat_x; 
+   global_rot_mat = global_rot_mat_z*global_rot_mat_y*global_rot_mat_x;
+ 
+   
+
+   vec3 pos = -(global_rot_mat*modelViewMatrix*(trans+(local_rot_mat*vPosition))).xyz;
+   vec3 light = vec3(lightPosition.x + lx, lightPosition.y + ly, lightPosition.z +lz);
+   L = normalize( light - pos );
+   E =  -pos;
+   N = normalize( (local_rot_mat*vNormal).xyz);
+
+
+//still add movement
+   gl_Position =projectionMatrix*global_rot_mat*modelViewMatrix*(trans+(local_rot_mat*vPosition));
+   color = vec4(vColor, 1.0);
+}
+
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+   
+varying vec4 color;
+
+uniform vec4 ambientProduct;
+uniform vec4 diffuseProduct;
+uniform vec4 specularProduct;
+uniform float shininess;
+uniform float perin;
+uniform float shade;
+varying vec3 N, L, E;
+
+
+//This is a library function for perin noise I got from an 
+//open sourced website notes in ecommon submission on why I
+//did this
+//
+// GLSL textureless classic 3D noise "cnoise",
+// with an RSL-style periodic variant "pnoise".
+// Author:  Stefan Gustavson (stefan.gustavson@liu.se)
+// Version: 2011-10-11
+//
+// Many thanks to Ian McEwan of Ashima Arts for the
+// ideas for permutation and gradient selection.
+//
+// Copyright (c) 2011 Stefan Gustavson. All rights reserved.
+// Distributed under the MIT license. See LICENSE file.
+// https://github.com/ashima/webgl-noise
+//
+
+vec3 mod289(vec3 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 mod289(vec4 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 permute(vec4 x)
+{
+  return mod289(((x*34.0)+1.0)*x);
+}
+
+vec4 taylorInvSqrt(vec4 r)
+{
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+vec3 fade(vec3 t) {
+  return t*t*t*(t*(t*6.0-15.0)+10.0);
+}
+
+// Classic Perlin noise
+float cnoise(vec3 P)
+{
+  vec3 Pi0 = floor(P); // Integer part for indexing
+  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+// Classic Perlin noise, periodic variant
+float pnoise(vec3 P, vec3 rep)
+{
+  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
+  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+
+void
+main()
+{
+     
+    vec4 fColor;
+    
+    vec3 H = normalize( L + E );
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+    fColor = ambient + diffuse +specular;
+    fColor.a = 1.0;
+    gl_FragColor = shade*fColor+color +perin*vec4(-abs(cnoise(abs(E)))/3.0,
+                  -abs(cnoise(abs(E)))/3.0,-abs(cnoise(abs(E)))/3.0,1.0);
+}
+
+
+
+
+
+
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="honolulu4.js"></script>
+<script type="text/javascript" src="keyboard.js"></script>
+<script type="text/javascript" src="gasket4.js"></script>
+</head>  
+
+
+
+
+</head>   
+
+<body>
+Click down and move mouse to mess with camera view, click again to stop.
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
+
+
+
+
+
+

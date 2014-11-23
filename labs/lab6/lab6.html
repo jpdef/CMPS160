@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<h2>Camera Toggles</h2>
+<div>
+<button id = "Button1">Increase X</button>
+<button id = "Button2">Decrease X</button>
+<button id = "Button3">Increase Y</button>
+<button id = "Button4">Decrease Y</button>
+<button id = "Button5">Increase Z</button>
+<button id = "Button6">Decrease Z</button>
+</div>
+
+<div>
+<button id = "Button7">Camera Rotate +Z</button>
+<button id = "Button8">Camera Rotate -Z</button>
+</div>
+
+<div>
+  <button id = "Button13">Increase FOV</button>
+  <button id = "Button14">Decrease FOV</button>
+  <button id = "Button15">Reset it all</button>
+</div>
+
+<h2>Lighting Toggles</h2>
+
+<div>
+  Keys for moving lights
+   X movement V,C   | Y movement M,N  | Z movement Z,X 
+</div>
+<div> 
+  <button id = "Button18">Light on/off</button>
+</div>
+
+
+<h2>Key Controls for Gasket Movement</h2>
+<div>Use W,S to control Z rotation </div>
+<div>Use A,D to control X rotation</div>
+<div>Use Q,E to control Y rotation</div>
+
+<div>Use J,L to control x translation </div>
+<div>Use I,K to control y translation</div>
+<div>Use U,O to control Z translation</div>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+attribute vec3 vColor;
+attribute vec4 vNormal;
+attribute vec2 aTexCoord;
+
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+
+uniform vec4 lightPosition;
+varying vec3 N, L, E;
+
+
+uniform float theta;
+uniform float phi;
+uniform float gamma;
+
+uniform float ax;
+uniform float ay;
+uniform float az;
+
+uniform float lx;
+uniform float ly;
+uniform float lz;
+
+uniform float dx;
+uniform float dy;
+uniform float dz;
+
+varying vec4 color;
+varying mat4 rot_mat_x; 
+varying mat4 rot_mat_y;
+varying mat4 rot_mat_z;
+varying mat4 local_rot_mat;
+
+varying mat4 global_rot_mat_x; 
+varying mat4 global_rot_mat_y;
+varying mat4 global_rot_mat_z;
+varying mat4 global_rot_mat;
+varying vec4 trans;
+varying vec4 rot_vec;
+
+varying vec2 vTex;
+
+
+void
+main()
+{   
+  
+  vTex = aTexCoord;
+
+   rot_mat_x =  mat4( 
+                vec3(1.0,0.0, 0.0),0.0,
+                vec3(0.0,cos(theta), -sin(theta)),0.0, 
+                vec3(0.0,sin(theta),  cos(theta)),0.0,
+                vec3(0.0,0.0,0.0), 1.0 
+                );
+
+  rot_mat_y =  mat4( 
+               vec3(cos(phi) ,0.0,-sin(phi)),0.0,
+               vec3(0.0, 1.0,0.0), 0.0,
+               vec3(sin(phi),0.0,cos(phi)),0.0,
+               vec3(0.0,0.0,0.0), 1.0 
+               );
+ 
+  rot_mat_z =  mat4( 
+               vec3(cos(gamma), sin(gamma), 0.0), 0.0,
+               vec3(-sin(gamma),cos(gamma), 0.0), 0.0,
+               vec3(0.0, 0.0, 1.0), 0.0,
+               vec3(0.0,0.0,0.0), 1.0 
+               );
+
+
+   global_rot_mat_x =  mat4( 
+                vec4(1.0,0.0, 0.0 , 0.0), 
+                vec4(0.0, cos(ax), -sin(ax), 0.0),
+                vec4(0.0, sin(ax),  cos(ax),0.0),
+                vec4(0.0,0.0,0.0,1.0) );
+
+  global_rot_mat_y =  mat4( 
+               vec3(cos(ay) ,0.0, -sin(ay)), 0.0,
+               vec3(0.0, 1.0,0.0),        0.0,
+               vec3(sin(ay),0.0,cos(ay) ),0.0,
+               vec3(0.0,0.0,0.0), 1.0 );
+ 
+  global_rot_mat_z =  mat4( 
+                vec3( cos(az), sin(az), 0.0),  0.0 ,
+                vec3(-sin(az), cos(az),0.0),  0.0 ,
+                vec3(0.0, 0.0,1.0)          , 0.0  ,
+                vec3(0.0,0.0,0.0)           , 1.0);
+
+/*
+  trans_mat = mat4(
+             vec3(1.0,0.0,0.0),dx,
+             vec3(0.0,1.0,0.0),dy,
+             vec3(0.0,0.0,1.0),dz,
+             vec3(0.0,0.0,0.0),1.0 );
+ */
+
+  trans = vec4(dx,0.0,0.0,0.0) + 
+             vec4(0.0,dy,0.0,0.0) +
+             vec4(0.0,0.0,dz,0.0);
+
+  //rotate and translate model 
+   local_rot_mat = rot_mat_z*rot_mat_y*rot_mat_x; 
+   global_rot_mat = global_rot_mat_z*global_rot_mat_y*global_rot_mat_x;
+ 
+   
+
+   vec3 pos = -(global_rot_mat*modelViewMatrix*(trans+(local_rot_mat*vPosition))).xyz;
+   vec3 light = vec3(lightPosition.x + lx, lightPosition.y + ly, lightPosition.z +lz);
+   L = normalize( light - pos );
+   E =  -pos;
+   N = normalize( (local_rot_mat*vNormal).xyz);
+
+
+//still add movement
+   gl_Position =projectionMatrix*global_rot_mat*modelViewMatrix*(trans+(local_rot_mat*vPosition));
+   color = vec4(vColor, 1.0);
+}
+
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+   
+varying vec4 color;
+varying vec2 vTex;
+uniform vec4 ambientProduct;
+uniform vec4 diffuseProduct;
+uniform vec4 specularProduct;
+uniform float shininess;
+uniform float shade;
+uniform sampler2D uSampler;
+varying vec3 N, L, E;
+
+
+
+void
+main()
+{
+     
+    vec4 fColor;
+    
+    vec3 H = normalize( L + E );
+    vec4 ambient = ambientProduct;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd*diffuseProduct;
+
+    float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * specularProduct;
+    
+    if( dot(L, N) < 0.0 ) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+    fColor = ambient + diffuse +specular;
+    fColor.a = 1.0;
+    gl_FragColor = shade*fColor+color + texture2D(uSampler,vec2(vTex.s,vTex.t));
+}
+
+
+
+
+
+
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="honolulu4.js"></script>
+<script type="text/javascript" src="keyboard.js"></script>
+<script type="text/javascript" src="lab6.js"></script>
+</head>  
+
+
+
+
+</head>   
+
+<body>
+<div>Click down and move mouse to mess with camera view, click again to stop.
+</div>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
+
+
+
+
+
+

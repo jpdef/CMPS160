@@ -1,9 +1,5 @@
 //
-<<<<<<< HEAD
-//  LoadShaders.js
-=======
 //  initShaders.js
->>>>>>> origin/lap_branch
 //
 
 function initShaders( gl, vertexShaderId, fragmentShaderId )

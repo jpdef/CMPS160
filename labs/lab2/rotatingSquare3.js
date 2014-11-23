@@ -44,7 +44,10 @@ window.onload = function init()
     gl.vertexAttribPointer( vPosition, 2, gl.FLOAT, false, 0, 0 );
     gl.enableVertexAttribArray(vPosition);
     
+<<<<<<< HEAD
     //updated variable for gpu
+=======
+>>>>>>> origin/lap_branch
     thetaLoc = gl.getUniformLocation(program, "theta");
     
     // Initialize event handlers
@@ -99,6 +102,10 @@ function render()
 
     theta += (direction ? 0.1 : -0.1);
     gl.uniform1f(thetaLoc, theta);
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/lap_branch
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     setTimeout(
